@@ -1,0 +1,57 @@
+trigger:  
+- master  
+    
+pr:
+- '*'
+
+pool:
+  vmImage: 'xxx' #ubuntu-latest
+
+variables:
+  azureServiceConnection:'xxx' #bdedfg-ndnfin78-mcmof-me8ufn9
+  acrName: 'xxx'
+  aciname: 'xxx'
+  imageName: 'xxx' #imagename:latest
+
+stages:
+- stage: Build
+  jobs:
+  - job: Buildjob
+    steps:
+    - task: Docker@2
+      displayName: 'Build and push the docker image'
+      inputs:
+        command: 'buildAndPush'
+        containerRegistry: $(acrname)
+        repository: $(imagename)
+        dockerfile: 'Dockerfile'
+
+- stage: Deploy
+  jobs:
+  - job: DeployJob
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Login to Azure'
+      inputs:
+        azureSubscription: $(azureserviceconnection)
+        scriptType: 'bash'
+        scriptlocation: 'inlineScript'
+        InlineScript: 'az acr login --name $(acrname)'
+    - task: AzureCLI@2
+      displayName: 'Deploy to ACI'
+      inputs:
+        azureSubscription: $(azureserviceconn)
+        scriptType: 'bash'
+        scriptlocation: 'inlineScript'
+        inlineScript: |
+          az container create `
+            --resource-group YourResourceGroup `
+            --name $(aciname) `
+            --image $(acrname).azurecr.io/$(imagename) `
+            --cpu 1 `
+            --memory 1Gi `
+	    --registry-login-server $(acrname).azurecr.io `
+	    --registry-username $(acrname) `
+	    --registry-password $(acrpassword) `
+	    --dns-name-label DNSLabel `
+	    --ports 8000
